@@ -753,6 +753,7 @@ mem_close(SDL_RWops * context)
 
 /* Functions to create SDL_RWops structures from various data sources */
 
+#include "pd_api.h"
 SDL_RWops *
 SDL_RWFromFile(const char *file, const char *mode)
 {
@@ -838,6 +839,8 @@ SDL_RWFromFile(const char *file, const char *mode)
         #elif __WINRT__
         FILE *fp = NULL;
         fopen_s(&fp, file, mode);
+        #elif PLAYDATE
+        FILE *fp = pd->file->open(file, kFileRead|kFileReadData);
         #else
         FILE *fp = fopen(file, mode);
         #endif
