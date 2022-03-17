@@ -73,24 +73,21 @@ int SDL_PLAYDATE_UpdateWindowFramebuffer(_THIS, SDL_Window * window, const SDL_R
 {
     static int frame_number;
     SDL_Surface *surface;
-
     surface = (SDL_Surface *) SDL_GetWindowData(window, PLAYDATE_SURFACE);
-
     if (!surface) {
         return SDL_SetError("Couldn't find surface for window");
     }
-    surface = SDL_ConvertSurfaceFormat(surface, SDL_PIXELFORMAT_RGB888, 0);
-//    surface = SDL_ConvertSurfaceFormat(surface, SDL_PIXELFORMAT_ARGB8888, 0);
-    Uint32* pixels = (Uint32*)surface->pixels;
+
+    SDL_Surface *tmp = SDL_ConvertSurfaceFormat(surface, SDL_PIXELFORMAT_ARGB8888, 0);
+    surface = tmp;
 
     pd->graphics->clear(kColorWhite);
 
     int w = surface->w;
     int area = w * surface->h;
-
+    Uint32* pixels = surface->pixels;
     uint8_t* frame = pd->graphics->getFrame();
 
-    // draw pixels to framebuffer
     int y = 0;
     for (int line=0;line<LCD_ROWS;++line) {
         int x = 0;
@@ -99,12 +96,9 @@ int SDL_PLAYDATE_UpdateWindowFramebuffer(_THIS, SDL_Window * window, const SDL_R
                 uint32_t pixel = pixels[y * w + x];
                 Uint8 r; Uint8 g; Uint8 b; Uint8 a;
                 SDL_GetRGB(pixel, surface->format, &r, &g, &b);
-                //Uint8 linear_intensity = (r + g + b) * (1.0f / 3.0f);
-                Uint8 ntsc_intensity = r * 0.299f + g * 0.587f + b * 0.114f;
-                //Uint8 cie_intensity = 0.212671f * r + 0.715160f * g + 0.072169f * b;
-                int val = ntsc_intensity + ntsc_intensity * map[y % 8][x % 8] / 63;
-
-                if (val >= 188) {
+                Uint8 cie_intensity = 0.212671f * r + 0.715160f * g + 0.072169f * b;
+                int val = cie_intensity + cie_intensity * map[y % 8][x % 8] / 63;
+                if (val >= 172) {
                     frame[byte] |= 1UL << bitIndex[bit];
                 } else {
                     frame[byte] &= ~(1UL << bitIndex[bit]);
@@ -116,6 +110,7 @@ int SDL_PLAYDATE_UpdateWindowFramebuffer(_THIS, SDL_Window * window, const SDL_R
         y++;
     }
 
+    SDL_FreeSurface(tmp);
     pd->graphics->display();
 
     return 0;
