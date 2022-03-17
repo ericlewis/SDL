@@ -126,6 +126,10 @@
 #undef __OSF__
 #define __OSF__     1
 #endif
+#if defined(__PLAYDATE__)
+#undef __PLAYDATE__
+#define __PLAYDATE__   1
+#endif
 #if defined(__QNXNTO__)
 #undef __QNXNTO__
 #define __QNXNTO__  1
