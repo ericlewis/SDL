@@ -31,25 +31,22 @@
 
 #define PLAYDATE_SURFACE   "_SDL_PlaydateSurface"
 
-const int bitIndex[] = {7,6,5,4,3,2,1,0};
-
 static const uint8_t map[8][8] = {
-    { 1, 49, 13, 61, 4, 52, 16, 64 },
-    { 33, 17, 45, 29, 36, 20, 48, 32 },
-    { 9, 57, 5, 53, 12, 60, 8, 56 },
-    { 41, 25, 37, 21, 44, 28, 40, 24 },
-    { 3, 51, 15, 63, 2, 50, 14, 62 },
-    { 25, 19, 47, 31, 34, 18, 46, 30 },
-    { 11, 59, 7, 55, 10, 58, 6, 54 },
-    { 43, 27, 39, 23, 42, 26, 38, 22 }
-  };
+        { 1, 49, 13, 61, 4, 52, 16, 64 },
+        { 33, 17, 45, 29, 36, 20, 48, 32 },
+        { 9, 57, 5, 53, 12, 60, 8, 56 },
+        { 41, 25, 37, 21, 44, 28, 40, 24 },
+        { 3, 51, 15, 63, 2, 50, 14, 62 },
+        { 25, 19, 47, 31, 34, 18, 46, 30 },
+        { 11, 59, 7, 55, 10, 58, 6, 54 },
+        { 43, 27, 39, 23, 42, 26, 38, 22 }
+};
 
 int SDL_PLAYDATE_CreateWindowFramebuffer(_THIS, SDL_Window * window, Uint32 * format, void ** pixels, int *pitch)
 {
     SDL_Surface *surface;
-    const Uint32 surface_format = SDL_PIXELFORMAT_ARGB8888;
+    const Uint32 surface_format = SDL_PIXELFORMAT_RGB888;
     int w, h;
-    SDL_DisplayMode mode;
 
     /* Free the old framebuffer surface */
     SDL_PLAYDATE_DestroyWindowFramebuffer(_this, window);
@@ -66,52 +63,46 @@ int SDL_PLAYDATE_CreateWindowFramebuffer(_THIS, SDL_Window * window, Uint32 * fo
     *format = surface_format;
     *pixels = surface->pixels;
     *pitch = surface->pitch;
+
     return 0;
 }
 
+static const float r_d = 0.212671f;
+static const float g_d = 0.715160f;
+static const float b_d = 0.072169f;
+
 int SDL_PLAYDATE_UpdateWindowFramebuffer(_THIS, SDL_Window * window, const SDL_Rect * rects, int numrects)
 {
-    static int frame_number;
     SDL_Surface *surface;
     surface = (SDL_Surface *) SDL_GetWindowData(window, PLAYDATE_SURFACE);
     if (!surface) {
         return SDL_SetError("Couldn't find surface for window");
     }
 
-    SDL_Surface *tmp = SDL_ConvertSurfaceFormat(surface, SDL_PIXELFORMAT_ARGB8888, 0);
-    surface = tmp;
-
-    pd->graphics->clear(kColorWhite);
-
-    int w = surface->w;
-    int area = w * surface->h;
     Uint32* pixels = surface->pixels;
     uint8_t* frame = pd->graphics->getFrame();
 
-    int y = 0;
-    for (int line=0;line<LCD_ROWS;++line) {
-        int x = 0;
-        for(int byte=0;byte<BYTES_PER_LINE;byte++) {
-            for(int bit=0;bit<8;bit++) {
-                uint32_t pixel = pixels[y * w + x];
-                Uint8 r; Uint8 g; Uint8 b; Uint8 a;
-                SDL_GetRGB(pixel, surface->format, &r, &g, &b);
-                Uint8 cie_intensity = 0.212671f * r + 0.715160f * g + 0.072169f * b;
-                int val = cie_intensity + cie_intensity * map[y % 8][x % 8] / 63;
-                if (val >= 172) {
-                    frame[byte] |= 1UL << bitIndex[bit];
-                } else {
-                    frame[byte] &= ~(1UL << bitIndex[bit]);
-                }
-                x++;
+    int y = 0; int x = 0;
+#ifdef PLAYDATE_UNROLL_FB_LOOP
+#pragma unroll 96000
+#endif
+    for (int i = 0; i<96000;i++) {
+        if (i % 400 == 0) {
+            x = 0;
+            if (y < 239) {
+                y++;
             }
         }
-        frame = (frame + LCD_ROWSIZE);
-        y++;
+
+        Uint8 r; Uint8 g; Uint8 b;
+        SDL_GetRGB(pixels[i], surface->format, &r, &g, &b);
+        Uint8 cie_intensity_0 = r_d * r + g_d * g + b_d * b;
+        int ii = cie_intensity_0 + cie_intensity_0 * map[y % 8][x % 8] / 63;
+        ii >= 172 ? (frame[y * LCD_ROWSIZE + (x >> 3)] |= (1 << (7 - (x & 7)))) : (frame[y * LCD_ROWSIZE + (x >> 3)] &= ~(1 << (7 - (x & 7))));
+        x++;
     }
 
-    SDL_FreeSurface(tmp);
-    pd->graphics->display();
+    pd->graphics->markUpdatedRows(0,239);
 
     return 0;
 }
