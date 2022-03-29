@@ -32,11 +32,19 @@
 
 #include "SDL_platform.h"
 
+#define HAVE_INTTYPES_H 1
 #define HAVE_STDARG_H 1
 #define HAVE_STDDEF_H 1
 #define HAVE_STDIO_H  1
+#define STDC_HEADERS 1
 #define HAVE_STRING_H 1
 #define HAVE_MATH_H 1
+#undef  HAVE_MMAP
+#define HAVE_MMAP 0
+#define HAVE_MALLOC 0
+#define HAVE_MORECORE 0
+#define LACKS_SYS_MMAN_H 1
+#define SDL_VIDEO_RENDER_SW 1
 
 /* Most everything except Visual Studio 2008 and earlier has stdint.h now */
 #if defined(_MSC_VER) && (_MSC_VER < 1600)
