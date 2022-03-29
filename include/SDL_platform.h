@@ -126,9 +126,11 @@
 #undef __OSF__
 #define __OSF__     1
 #endif
-#if defined(__PLAYDATE__)
+#if defined(__PLAYDATE__) || defined(PLAYDATE)
 #undef __PLAYDATE__
-#define __PLAYDATE__   1
+#undef PLAYDATE
+#define PLAYDATE   1
+#define TARGET_PLAYDATE   1
 #endif
 #if defined(__QNXNTO__)
 #undef __QNXNTO__
