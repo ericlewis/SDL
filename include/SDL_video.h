@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2022 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -50,7 +50,7 @@ extern "C" {
  *  \sa SDL_SetWindowDisplayMode()
  *  \sa SDL_GetWindowDisplayMode()
  */
-typedef struct
+typedef struct SDL_DisplayMode
 {
     Uint32 format;              /**< pixel format */
     int w;                      /**< width, in screen coordinates */
@@ -99,7 +99,7 @@ typedef struct SDL_Window SDL_Window;
  *
  *  \sa SDL_GetWindowFlags()
  */
-typedef enum
+typedef enum SDL_WindowFlags
 {
     SDL_WINDOW_FULLSCREEN = 0x00000001,         /**< fullscreen window */
     SDL_WINDOW_OPENGL = 0x00000002,             /**< window usable with OpenGL context */
@@ -151,7 +151,7 @@ typedef enum
 /**
  *  \brief Event subtype for window events
  */
-typedef enum
+typedef enum SDL_WindowEventID
 {
     SDL_WINDOWEVENT_NONE,           /**< Never used */
     SDL_WINDOWEVENT_SHOWN,          /**< Window has been shown */
@@ -182,18 +182,19 @@ typedef enum
 /**
  *  \brief Event subtype for display events
  */
-typedef enum
+typedef enum SDL_DisplayEventID
 {
     SDL_DISPLAYEVENT_NONE,          /**< Never used */
     SDL_DISPLAYEVENT_ORIENTATION,   /**< Display orientation has changed to data1 */
     SDL_DISPLAYEVENT_CONNECTED,     /**< Display has been added to the system */
-    SDL_DISPLAYEVENT_DISCONNECTED   /**< Display has been removed from the system */
+    SDL_DISPLAYEVENT_DISCONNECTED,  /**< Display has been removed from the system */
+    SDL_DISPLAYEVENT_MOVED          /**< Display has changed position */
 } SDL_DisplayEventID;
 
 /**
  *  \brief Display orientation
  */
-typedef enum
+typedef enum SDL_DisplayOrientation
 {
     SDL_ORIENTATION_UNKNOWN,            /**< The display orientation can't be determined */
     SDL_ORIENTATION_LANDSCAPE,          /**< The display is in landscape mode, with the right side up, relative to portrait mode */
@@ -205,7 +206,7 @@ typedef enum
 /**
  *  \brief Window flash operation
  */
-typedef enum
+typedef enum SDL_FlashOperation
 {
     SDL_FLASH_CANCEL,                   /**< Cancel any window flash state */
     SDL_FLASH_BRIEFLY,                  /**< Flash the window briefly to get attention */
@@ -220,7 +221,7 @@ typedef void *SDL_GLContext;
 /**
  *  \brief OpenGL configuration attributes
  */
-typedef enum
+typedef enum SDL_GLattr
 {
     SDL_GL_RED_SIZE,
     SDL_GL_GREEN_SIZE,
@@ -248,17 +249,18 @@ typedef enum
     SDL_GL_FRAMEBUFFER_SRGB_CAPABLE,
     SDL_GL_CONTEXT_RELEASE_BEHAVIOR,
     SDL_GL_CONTEXT_RESET_NOTIFICATION,
-    SDL_GL_CONTEXT_NO_ERROR
+    SDL_GL_CONTEXT_NO_ERROR,
+    SDL_GL_FLOATBUFFERS
 } SDL_GLattr;
 
-typedef enum
+typedef enum SDL_GLprofile
 {
     SDL_GL_CONTEXT_PROFILE_CORE           = 0x0001,
     SDL_GL_CONTEXT_PROFILE_COMPATIBILITY  = 0x0002,
     SDL_GL_CONTEXT_PROFILE_ES             = 0x0004 /**< GLX_CONTEXT_ES2_PROFILE_BIT_EXT */
 } SDL_GLprofile;
 
-typedef enum
+typedef enum SDL_GLcontextFlag
 {
     SDL_GL_CONTEXT_DEBUG_FLAG              = 0x0001,
     SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG = 0x0002,
@@ -266,13 +268,13 @@ typedef enum
     SDL_GL_CONTEXT_RESET_ISOLATION_FLAG    = 0x0008
 } SDL_GLcontextFlag;
 
-typedef enum
+typedef enum SDL_GLcontextReleaseFlag
 {
     SDL_GL_CONTEXT_RELEASE_BEHAVIOR_NONE   = 0x0000,
     SDL_GL_CONTEXT_RELEASE_BEHAVIOR_FLUSH  = 0x0001
 } SDL_GLcontextReleaseFlag;
 
-typedef enum
+typedef enum SDL_GLContextResetNotification
 {
     SDL_GL_CONTEXT_RESET_NO_NOTIFICATION = 0x0000,
     SDL_GL_CONTEXT_RESET_LOSE_CONTEXT    = 0x0001
@@ -444,6 +446,15 @@ extern DECLSPEC int SDLCALL SDL_GetDisplayUsableBounds(int displayIndex, SDL_Rec
  * A failure of this function usually means that either no DPI information is
  * available or the `displayIndex` is out of range.
  *
+ * **WARNING**: This reports the DPI that the hardware reports, and it is not
+ * always reliable! It is almost always better to use SDL_GetWindowSize() to
+ * find the window size, which might be in logical points instead of pixels,
+ * and then SDL_GL_GetDrawableSize(), SDL_Vulkan_GetDrawableSize(),
+ * SDL_Metal_GetDrawableSize(), or SDL_GetRendererOutputSize(), and compare
+ * the two values to get an actual scaling value between the two. We will be
+ * rethinking how high-dpi details should be managed in SDL3 to make things
+ * more consistent, reliable, and clear.
+ *
  * \param displayIndex the index of the display from which DPI information
  *                     should be queried
  * \param ddpi a pointer filled in with the diagonal DPI of the display; may
@@ -588,6 +599,35 @@ extern DECLSPEC int SDLCALL SDL_GetCurrentDisplayMode(int displayIndex, SDL_Disp
 extern DECLSPEC SDL_DisplayMode * SDLCALL SDL_GetClosestDisplayMode(int displayIndex, const SDL_DisplayMode * mode, SDL_DisplayMode * closest);
 
 /**
+ * Get the index of the display containing a point
+ *
+ * \param point the point to query
+ * \returns the index of the display containing the point or a negative error
+ *          code on failure; call SDL_GetError() for more information.
+ *
+ * \since This function is available since SDL 2.24.0.
+ *
+ * \sa SDL_GetDisplayBounds
+ * \sa SDL_GetNumVideoDisplays
+ */
+extern DECLSPEC int SDLCALL SDL_GetPointDisplayIndex(const SDL_Point * point);
+
+/**
+ * Get the index of the display primarily containing a rect
+ *
+ * \param rect the rect to query
+ * \returns the index of the display entirely containing the rect or closest
+ *          to the center of the rect on success or a negative error code on
+ *          failure; call SDL_GetError() for more information.
+ *
+ * \since This function is available since SDL 2.24.0.
+ *
+ * \sa SDL_GetDisplayBounds
+ * \sa SDL_GetNumVideoDisplays
+ */
+extern DECLSPEC int SDLCALL SDL_GetRectDisplayIndex(const SDL_Rect * rect);
+
+/**
  * Get the index of the display associated with a window.
  *
  * \param window the window to query
@@ -697,7 +737,10 @@ extern DECLSPEC Uint32 SDLCALL SDL_GetWindowPixelFormat(SDL_Window * window);
  * in pixels may differ from its size in screen coordinates on platforms with
  * high-DPI support (e.g. iOS and macOS). Use SDL_GetWindowSize() to query the
  * client area's size in screen coordinates, and SDL_GL_GetDrawableSize() or
- * SDL_GetRendererOutputSize() to query the drawable size in pixels.
+ * SDL_GetRendererOutputSize() to query the drawable size in pixels. Note that
+ * when this flag is set, the drawable size can vary after the window is
+ * created and should be queried after major window events such as when the
+ * window is resized or moved between displays.
  *
  * If the window is set fullscreen, the width and height parameters `w` and
  * `h` will not be used. However, invalid size parameters (e.g. too large) may
@@ -1005,6 +1048,27 @@ extern DECLSPEC int SDLCALL SDL_GetWindowBordersSize(SDL_Window * window,
                                                      int *bottom, int *right);
 
 /**
+ * Get the size of a window in pixels.
+ *
+ * This may differ from SDL_GetWindowSize() if we're rendering to a high-DPI
+ * drawable, i.e. the window was created with `SDL_WINDOW_ALLOW_HIGHDPI` on a
+ * platform with high-DPI support (Apple calls this "Retina"), and not
+ * disabled by the `SDL_HINT_VIDEO_HIGHDPI_DISABLED` hint.
+ *
+ * \param window the window from which the drawable size should be queried
+ * \param w a pointer to variable for storing the width in pixels, may be NULL
+ * \param h a pointer to variable for storing the height in pixels, may be
+ *          NULL
+ *
+ * \since This function is available since SDL 2.26.0.
+ *
+ * \sa SDL_CreateWindow
+ * \sa SDL_GetWindowSize
+ */
+extern DECLSPEC void SDLCALL SDL_GetWindowSizeInPixels(SDL_Window * window,
+                                                       int *w, int *h);
+
+/**
  * Set the minimum size of a window's client area.
  *
  * \param window the window to change
@@ -1212,6 +1276,18 @@ extern DECLSPEC int SDLCALL SDL_SetWindowFullscreen(SDL_Window * window,
                                                     Uint32 flags);
 
 /**
+ * Return whether the window has a surface associated with it.
+ *
+ * \returns SDL_TRUE if there is a surface associated with the window, or
+ *          SDL_FALSE otherwise.
+ *
+ * \since This function is available since SDL 2.28.0.
+ *
+ * \sa SDL_GetWindowSurface
+ */
+extern DECLSPEC SDL_bool SDLCALL SDL_HasWindowSurface(SDL_Window *window);
+
+/**
  * Get the SDL surface associated with the window.
  *
  * A new surface will be created with the optimal format for the window, if
@@ -1220,6 +1296,10 @@ extern DECLSPEC int SDLCALL SDL_SetWindowFullscreen(SDL_Window * window,
  *
  * This surface will be invalidated if the window is resized. After resizing a
  * window this function must be called again to return a valid surface.
+ *
+ * Note that on some platforms the pixels pointer of the surface may be
+ * modified after each call to SDL_UpdateWindowSurface(), so that the platform
+ * code can implement efficient double or triple buffering.
  *
  * You may not combine this with 3D or the rendering API on this window.
  *
@@ -1231,6 +1311,8 @@ extern DECLSPEC int SDLCALL SDL_SetWindowFullscreen(SDL_Window * window,
  *
  * \since This function is available since SDL 2.0.0.
  *
+ * \sa SDL_DestroyWindowSurface
+ * \sa SDL_HasWindowSurface
  * \sa SDL_UpdateWindowSurface
  * \sa SDL_UpdateWindowSurfaceRects
  */
@@ -1263,9 +1345,14 @@ extern DECLSPEC int SDLCALL SDL_UpdateWindowSurface(SDL_Window * window);
  *
  * This function is equivalent to the SDL 1.2 API SDL_UpdateRects().
  *
+ * Note that this function will update _at least_ the rectangles specified,
+ * but this is only intended as an optimization; in practice, this might
+ * update more of the screen (or all of the screen!), depending on what
+ * method SDL uses to send pixels to the system.
+ *
  * \param window the window to update
  * \param rects an array of SDL_Rect structures representing areas of the
- *              surface to copy
+ *              surface to copy, in pixels
  * \param numrects the number of rectangles
  * \returns 0 on success or a negative error code on failure; call
  *          SDL_GetError() for more information.
@@ -1278,6 +1365,20 @@ extern DECLSPEC int SDLCALL SDL_UpdateWindowSurface(SDL_Window * window);
 extern DECLSPEC int SDLCALL SDL_UpdateWindowSurfaceRects(SDL_Window * window,
                                                          const SDL_Rect * rects,
                                                          int numrects);
+
+/**
+ * Destroy the surface associated with the window.
+ *
+ * \param window the window to update
+ * \returns 0 on success or a negative error code on failure; call
+ *          SDL_GetError() for more information.
+ *
+ * \since This function is available since SDL 2.28.0.
+ *
+ * \sa SDL_GetWindowSurface
+ * \sa SDL_HasWindowSurface
+ */
+extern DECLSPEC int SDLCALL SDL_DestroyWindowSurface(SDL_Window *window);
 
 /**
  * Set a window's input grab mode.
@@ -1614,7 +1715,7 @@ extern DECLSPEC int SDLCALL SDL_GetWindowGammaRamp(SDL_Window * window,
  *
  * \sa SDL_HitTest
  */
-typedef enum
+typedef enum SDL_HitTestResult
 {
     SDL_HITTEST_NORMAL,  /**< Region is normal. No special properties. */
     SDL_HITTEST_DRAGGABLE,  /**< Region can drag entire window. */
@@ -1747,6 +1848,9 @@ extern DECLSPEC void SDLCALL SDL_EnableScreenSaver(void);
  *
  * If you disable the screensaver, it is automatically re-enabled when SDL
  * quits.
+ *
+ * The screensaver is disabled by default since SDL 2.0.2. Before SDL 2.0.2
+ * the screensaver was enabled by default.
  *
  * \since This function is available since SDL 2.0.0.
  *
@@ -2009,13 +2113,8 @@ extern DECLSPEC void SDLCALL SDL_GL_GetDrawableSize(SDL_Window * window, int *w,
  * retry the call with 1 for the interval.
  *
  * Adaptive vsync is implemented for some glX drivers with
- * GLX_EXT_swap_control_tear:
- *
- * https://www.opengl.org/registry/specs/EXT/glx_swap_control_tear.txt
- *
- * and for some Windows drivers with WGL_EXT_swap_control_tear:
- *
- * https://www.opengl.org/registry/specs/EXT/wgl_swap_control_tear.txt
+ * GLX_EXT_swap_control_tear, and for some Windows drivers with
+ * WGL_EXT_swap_control_tear.
  *
  * Read more on the Khronos wiki:
  * https://www.khronos.org/opengl/wiki/Swap_Interval#Adaptive_Vsync

@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2022 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -42,7 +42,7 @@
  *  of the many good 3D engines.
  *
  *  These functions must be called from the main thread.
- *  See this bug for details: http://bugzilla.libsdl.org/show_bug.cgi?id=1995
+ *  See this bug for details: https://github.com/libsdl-org/SDL/issues/986
  */
 
 #ifndef SDL_render_h_
@@ -61,7 +61,7 @@ extern "C" {
 /**
  * Flags used when creating a rendering context
  */
-typedef enum
+typedef enum SDL_RendererFlags
 {
     SDL_RENDERER_SOFTWARE = 0x00000001,         /**< The renderer is a software fallback */
     SDL_RENDERER_ACCELERATED = 0x00000002,      /**< The renderer uses hardware
@@ -98,7 +98,7 @@ typedef struct SDL_Vertex
 /**
  * The scaling mode for a texture.
  */
-typedef enum
+typedef enum SDL_ScaleMode
 {
     SDL_ScaleModeNearest, /**< nearest pixel sampling */
     SDL_ScaleModeLinear,  /**< linear filtering */
@@ -108,7 +108,7 @@ typedef enum
 /**
  * The access pattern allowed for a texture.
  */
-typedef enum
+typedef enum SDL_TextureAccess
 {
     SDL_TEXTUREACCESS_STATIC,    /**< Changes rarely, not lockable */
     SDL_TEXTUREACCESS_STREAMING, /**< Changes frequently, lockable */
@@ -118,7 +118,7 @@ typedef enum
 /**
  * The texture channel modulation used in SDL_RenderCopy().
  */
-typedef enum
+typedef enum SDL_TextureModulate
 {
     SDL_TEXTUREMODULATE_NONE = 0x00000000,     /**< No modulation */
     SDL_TEXTUREMODULATE_COLOR = 0x00000001,    /**< srcC = srcC * color */
@@ -128,7 +128,7 @@ typedef enum
 /**
  * Flip constants for SDL_RenderCopyEx
  */
-typedef enum
+typedef enum SDL_RendererFlip
 {
     SDL_FLIP_NONE = 0x00000000,     /**< Do not flip */
     SDL_FLIP_HORIZONTAL = 0x00000001,    /**< flip horizontally */
@@ -825,9 +825,13 @@ extern DECLSPEC int SDLCALL SDL_RenderSetLogicalSize(SDL_Renderer * renderer, in
 /**
  * Get device independent resolution for rendering.
  *
- * This may return 0 for `w` and `h` if the SDL_Renderer has never had its
- * logical size set by SDL_RenderSetLogicalSize() and never had a render
- * target set.
+ * When using the main rendering target (eg no target texture is set): this
+ * may return 0 for `w` and `h` if the SDL_Renderer has never had its logical
+ * size set by SDL_RenderSetLogicalSize(). Otherwise it returns the logical
+ * width and height.
+ *
+ * When using a target texture: Never return 0 for `w` and `h` at first. Then
+ * it returns the logical width and height that are set.
  *
  * \param renderer a rendering context
  * \param w an int to be filled with the width
@@ -1000,7 +1004,7 @@ extern DECLSPEC void SDLCALL SDL_RenderGetScale(SDL_Renderer * renderer,
  * and logical renderer size set
  *
  * \param renderer the renderer from which the logical coordinates should be
- *                 calcualted
+ *                 calculated
  * \param windowX the real X coordinate in the window
  * \param windowY the real Y coordinate in the window
  * \param logicalX the pointer filled with the logical x coordinate
@@ -1017,19 +1021,23 @@ extern DECLSPEC void SDLCALL SDL_RenderWindowToLogical(SDL_Renderer * renderer,
                                                             int windowX, int windowY, 
                                                             float *logicalX, float *logicalY);
                                                   
-                                                  /**
- * Get real coordinates of point in window when given logical coordinates of point in renderer.
- * Logical coordinates will differ from real coordinates when render is scaled and logical renderer size set
- * 
- * \param renderer the renderer from which the window coordinates should be calculated
+
+/**
+ * Get real coordinates of point in window when given logical coordinates of
+ * point in renderer.
+ *
+ * Logical coordinates will differ from real coordinates when render is scaled
+ * and logical renderer size set
+ *
+ * \param renderer the renderer from which the window coordinates should be
+ *                 calculated
  * \param logicalX the logical x coordinate
  * \param logicalY the logical y coordinate
  * \param windowX the pointer filled with the real X coordinate in the window
  * \param windowY the pointer filled with the real Y coordinate in the window
- 
- *  
+ *
  * \since This function is available since SDL 2.0.18.
- * 
+ *
  * \sa SDL_RenderGetScale
  * \sa SDL_RenderSetScale
  * \sa SDL_RenderGetLogicalSize
@@ -1723,6 +1731,11 @@ extern DECLSPEC int SDLCALL SDL_RenderReadPixels(SDL_Renderer * renderer,
  *
  * \param renderer the rendering context
  *
+ * \threadsafety You may only call this function on the main thread. If this
+ *               happens to work on a background thread on any given platform
+ *               or backend, it's purely by luck and you should not rely on it
+ *               to work next time.
+ *
  * \since This function is available since SDL 2.0.0.
  *
  * \sa SDL_RenderClear
@@ -1756,6 +1769,9 @@ extern DECLSPEC void SDLCALL SDL_DestroyTexture(SDL_Texture * texture);
 
 /**
  * Destroy the rendering context for a window and free associated textures.
+ *
+ * If `renderer` is NULL, this function will return immediately after setting
+ * the SDL error message to "Invalid renderer". See SDL_GetError().
  *
  * \param renderer the rendering context
  *
@@ -1874,7 +1890,7 @@ extern DECLSPEC void *SDLCALL SDL_RenderGetMetalLayer(SDL_Renderer * renderer);
  * Note that as of SDL 2.0.18, this will return NULL if Metal refuses to give
  * SDL a drawable to render to, which might happen if the window is
  * hidden/minimized/offscreen. This doesn't apply to command encoders for
- * render targets, just the window's backbacker. Check your return values!
+ * render targets, just the window's backbuffer. Check your return values!
  *
  * \param renderer The renderer to query
  * \returns an `id<MTLRenderCommandEncoder>` on success, or NULL if the
