@@ -28,6 +28,7 @@
 #include "SDL_playdate_framebuffer_c.h"
 
 #include "pd_api.h"
+extern PlaydateAPI* pd;
 
 #define PLAYDATE_SURFACE   "_SDL_PlaydateSurface"
 
