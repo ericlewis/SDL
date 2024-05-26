@@ -30,6 +30,7 @@
 #include "../SDL_syssensor.h"
 
 #include "pd_api.h"
+extern PlaydateAPI* pd;
 
 typedef struct
 {
@@ -114,7 +115,8 @@ SDL_PLAYDATE_SensorUpdate(SDL_Sensor *sensor)
                 data[0] = data[0] * SDL_STANDARD_GRAVITY;
                 data[1] = data[1] * SDL_STANDARD_GRAVITY;
                 data[2] = data[2] * SDL_STANDARD_GRAVITY;
-                SDL_PrivateSensorUpdate(sensor, data, SDL_arraysize(data));
+            	Uint64 timestamp_us = pd->system->getCurrentTimeMilliseconds() * 1000;
+                SDL_PrivateSensorUpdate(sensor, timestamp_us, data, SDL_arraysize(data));
             }
             break;
         default:
