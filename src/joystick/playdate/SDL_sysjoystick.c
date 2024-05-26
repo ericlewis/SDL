@@ -30,6 +30,7 @@
 #include "../../events/SDL_keyboard_c.h"
 
 #include "pd_api.h"
+extern PlaydateAPI* pd;
 
 static int running = 0;
 static const unsigned int button_map[] = {
