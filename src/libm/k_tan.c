@@ -74,7 +74,7 @@ double attribute_hidden __kernel_tan(double x, double y, int iy)
 	ix = hx&0x7fffffff;	/* high word of |x| */
 	if(ix<0x3e300000)			/* x < 2**-28 */
 	    {if((int)x==0) {			/* generate inexact */
-	        u_int32_t low;
+	        uint32_t low;
 		GET_LOW_WORD(low,x);
 		if(((ix|low)|(iy+1))==0) return one/fabs(x);
 		else return (iy==1)? x: -one/x;
