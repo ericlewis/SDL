@@ -27,6 +27,7 @@
 #include "../SDL_syspower.h"
 
 #include "pd_api.h"
+extern PlaydateAPI* pd;
 
 SDL_bool
 SDL_GetPowerInfo_Playdate(SDL_PowerState * state, int *seconds, int *percent)

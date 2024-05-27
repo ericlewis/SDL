@@ -24,6 +24,7 @@
 
 #include "SDL_timer.h"
 #include "pd_api.h"
+extern PlaydateAPI* pd;
 
 static SDL_bool ticks_started = SDL_FALSE;
 
